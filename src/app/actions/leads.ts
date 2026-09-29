@@ -1,6 +1,7 @@
 'use server'
 
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendDiagnosticResultEmail } from '@/lib/email'
 
 export async function createDiagnosticLead(
   email: string,
@@ -60,6 +61,12 @@ export async function createDiagnosticLead(
         return { success: false, error: 'Failed to save lead information.' }
       }
     }
+
+    await sendDiagnosticResultEmail({
+      to: trimmedEmail,
+      total,
+      zone,
+    })
 
     return { success: true }
   } catch (err: any) {

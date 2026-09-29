@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createDiagnosticLead } from '@/app/actions/leads'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/lib/analytics'
 
 export default function DiagnosticResultPage() {
   const [total, setTotal] = useState<number | null>(null)
@@ -37,6 +38,11 @@ export default function DiagnosticResultPage() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (total === null || !zone) return
+    trackEvent({ name: 'diagnostic_scored', properties: { total, zone } })
+  }, [total, zone])
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

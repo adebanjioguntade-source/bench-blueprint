@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/lib/analytics'
 
 const REPORT_ROWS = [
   { id: '00', title: 'Bench Readiness Score', carryKey: 'diagnostic_total', isMvp: true },
@@ -69,6 +70,11 @@ export default function ReportPage() {
 
     fetchReportData()
   }, [router, supabase])
+
+  useEffect(() => {
+    if (loading) return
+    trackEvent({ name: 'report_generated' })
+  }, [loading])
 
   if (loading) {
     return (

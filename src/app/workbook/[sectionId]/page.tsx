@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useTransition } from 'react'
+import React, { useState, useEffect, useRef, useTransition } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { SECTIONS } from '@/lib/sections/definitions'
@@ -9,13 +9,16 @@ import SectionRenderer from '@/components/workbook/SectionRenderer'
 import BridgePanel from '@/components/workbook/BridgePanel'
 import { useAutosave } from '@/hooks/useAutosave'
 import { cn } from '@/lib/utils'
+import { safeInternalPath } from '@/lib/safe-path'
+import { trackEvent } from '@/lib/analytics'
 
 export default function WorkbookSectionPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
   const sectionId = params.sectionId as string
-  const returnUrl = searchParams.get('return')
+  const rawReturn = searchParams.get('return')
+  const returnUrl = rawReturn ? safeInternalPath(rawReturn, '') : ''
 
   const section = SECTIONS.find((s) => s.id === sectionId)
 
@@ -27,6 +30,7 @@ export default function WorkbookSectionPage() {
   
   const supabase = createClient()
   const [isPending, startTransition] = useTransition()
+  const startedRef = useRef<string | null>(null)
 
   // Fetch section data and carried context
   useEffect(() => {
@@ -82,6 +86,13 @@ export default function WorkbookSectionPage() {
 
     fetchData()
   }, [sectionId, section, router, supabase])
+
+  useEffect(() => {
+    if (loading || !section) return
+    if (startedRef.current === sectionId) return
+    startedRef.current = sectionId
+    trackEvent({ name: 'section_started', properties: { sectionId } })
+  }, [loading, section, sectionId])
 
   // Hook up autosave logic
   const { saveStatus, saveImmediately } = useAutosave(
@@ -144,6 +155,8 @@ export default function WorkbookSectionPage() {
         // Sync outputs
         const { saveSectionEntry } = await import('@/app/actions/workbook')
         await saveSectionEntry(sectionId, data, 'complete')
+
+        trackEvent({ name: 'section_completed', properties: { sectionId } })
 
         // Handle routing
         if (returnUrl) {

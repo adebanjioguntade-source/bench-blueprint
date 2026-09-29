@@ -75,7 +75,11 @@ create policy own_outputs on public.user_outputs
 
 -- Trigger to create a profile automatically when a user signs up
 create or replace function public.handle_new_user()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 declare
   lead_record record;
   diagnostic_data jsonb;
@@ -122,7 +126,7 @@ begin
 
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- Create the trigger
 create or replace trigger on_auth_user_created

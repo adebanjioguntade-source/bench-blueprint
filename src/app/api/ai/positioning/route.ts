@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 419 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const serviceClient = createServiceClient()
@@ -63,11 +63,17 @@ export async function POST(request: Request) {
     let resultJson: { specific: string; broader: string; bolder: string }
 
     const apiKey = process.env.ANTHROPIC_API_KEY
-    const isPlaceholderKey = !apiKey || apiKey.includes('placeholder')
+    const isPlaceholderKey = !apiKey || apiKey.toLowerCase().includes('placeholder')
 
     if (isPlaceholderKey) {
-      // Development fallback mock response
-      console.log('[API AI] Dev Fallback: Using mock suggestions (placeholder API key detected).')
+      if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json(
+          { error: 'Positioning assist is not configured. Set ANTHROPIC_API_KEY on the server.' },
+          { status: 503 }
+        )
+      }
+
+      console.log('[API AI] Dev fallback: mock suggestions (ANTHROPIC_API_KEY missing or placeholder).')
       resultJson = {
         specific: `${draft.trim()} specifically focusing on operational systems tuning and performance validation.`,
         broader: `A senior strategist partnering with leadership teams to design sustainable growth roadmaps through engineering excellence.`,

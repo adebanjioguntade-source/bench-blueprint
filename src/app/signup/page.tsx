@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
+import React, { Suspense, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { safeInternalPath } from '@/lib/safe-path'
 
-export default function SignupPage() {
-  const router = useRouter()
+function SignupForm() {
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = safeInternalPath(searchParams.get('next'))
 
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState(searchParams.get('email') || '')
@@ -162,5 +162,21 @@ export default function SignupPage() {
         The Bench Blueprint™ · © 2026 Lami Oguntade · All rights reserved.
       </footer>
     </main>
+  )
+}
+
+function SignupFallback() {
+  return (
+    <main className="flex-1 flex flex-col justify-center py-12 bg-background">
+      <p className="text-center text-sm text-muted-foreground">Loading sign-up…</p>
+    </main>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupFallback />}>
+      <SignupForm />
+    </Suspense>
   )
 }
